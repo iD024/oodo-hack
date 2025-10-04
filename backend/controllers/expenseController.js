@@ -118,6 +118,7 @@ const createExpense = async (req, res) => {
     await ExpenseApproval.create({
         expense_id: newExpense.id,
         approver_id: user.manager_id,
+        approval_level: 1,
         sequence: 1,
     }, client); // Pass client for transaction
 
@@ -285,6 +286,7 @@ const approveOrRejectExpense = async (req, res) => {
             await ExpenseApproval.create({
                 expense_id: expenseId,
                 approver_id: nextApprover.id,
+                approval_level: currentApproval.approval_level + 1,
                 sequence: currentApproval.sequence + 1,
             }, client);
 
