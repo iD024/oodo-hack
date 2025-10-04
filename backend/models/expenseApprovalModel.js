@@ -1,10 +1,10 @@
 const pool = require('../config/database');
 
 const ExpenseApproval = {
-  async create({ expense_id, approver_id, sequence }, client = pool) {
+  async create({ expense_id, approver_id, sequence, approval_level = 1 }, client = pool) {
     const result = await client.query(
-      'INSERT INTO expense_approvals (expense_id, approver_id, status, sequence) VALUES ($1, $2, $3, $4) RETURNING *',
-      [expense_id, approver_id, 'pending', sequence]
+      'INSERT INTO expense_approvals (expense_id, approver_id, approval_level, status, sequence) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [expense_id, approver_id, approval_level, 'pending', sequence]
     );
     return result.rows[0];
   },
