@@ -54,6 +54,16 @@ const User = {
     const result = await pool.query('SELECT id, name, email, role, manager_id, created_at FROM users WHERE role = $1 ORDER BY name', [role]);
     return result.rows;
   },
+
+  /**
+   * Finds users who report to a specific manager.
+   * @param {string} managerId - The manager's user ID.
+   * @returns {Promise<Array>} Array of subordinate users.
+   */
+  async findByManagerId(managerId) {
+    const result = await pool.query('SELECT id, name, email, role, manager_id, created_at FROM users WHERE manager_id = $1 ORDER BY name', [managerId]);
+    return result.rows;
+  },
 };
 
 module.exports = User;

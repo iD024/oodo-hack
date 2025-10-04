@@ -33,4 +33,20 @@ router.get('/managers', protect, async (req, res) => {
   }
 });
 
+// Get subordinates for current manager
+router.get('/subordinates', protect, async (req, res) => {
+  try {
+    // Allow managers and admins to view subordinate lists
+    if (!['manager', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const subordinates = await User.findByManagerId(req.user.id);
+    res.json({ subordinates });
+  } catch (error) {
+    console.error('Error fetching subordinates', error);
+    res.status(500).json({ message: 'Server error while fetching subordinates' });
+  }
+});
+
 module.exports = router;

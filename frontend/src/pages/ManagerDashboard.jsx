@@ -23,13 +23,13 @@ const ManagerDashboard = ({ user }) => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [pendingResponse, statsResponse] = await Promise.all([
-          apiService.get('/expenses/pending'),
+        const [expensesResponse, statsResponse] = await Promise.all([
+          apiService.get('/expenses/subordinates'),
           apiService.get('/manager/stats')
         ]);
-        
-        setPendingExpenses(pendingResponse.data);
-        setStats(statsResponse.data);
+
+        setPendingExpenses(expensesResponse.data);
+        setStats(statsResponse.data || {});
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -45,17 +45,17 @@ const ManagerDashboard = ({ user }) => {
     
     try {
       await apiService.post(`/expenses/${expenseId}/${action}`, {
-        comment: approvalComment
+        comments: approvalComment
       });
 
       // Refresh the pending expenses and stats
-      const [pendingResponse, statsResponse] = await Promise.all([
-        apiService.get('/expenses/pending'),
+      const [expensesResponse, statsResponse] = await Promise.all([
+        apiService.get(`/expenses/subordinates?status=${currentFilter === 'all' ? '' : currentFilter}`),
         apiService.get('/manager/stats')
       ]);
-      
-      setPendingExpenses(pendingResponse.data);
-      setStats(statsResponse.data);
+
+      setPendingExpenses(expensesResponse.data);
+      setStats(statsResponse.data || {});
       
       setShowApprovalModal(false);
       setApprovalComment('');
@@ -65,6 +65,22 @@ const ManagerDashboard = ({ user }) => {
       alert('Failed to process approval. Please try again.');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const [currentFilter, setCurrentFilter] = useState('pending'); // pending | approved | rejected | all
+
+  const changeFilter = async (filter) => {
+    setCurrentFilter(filter);
+    setLoading(true);
+    try {
+      const q = filter === 'all' ? '' : `?status=${filter}`;
+      const resp = await apiService.get(`/expenses/subordinates${q}`);
+      setPendingExpenses(resp.data);
+    } catch (err) {
+      console.error('Filter fetch error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,6 +135,19 @@ const ManagerDashboard = ({ user }) => {
             <div className="text-sm text-gray-600">Total Processed</div>
           </div>
         </Card>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex items-center space-x-2 mb-4">
+        {['pending','approved','rejected','all'].map((f) => (
+          <button
+            key={f}
+            onClick={() => changeFilter(f)}
+            className={`px-3 py-1 rounded-full text-sm font-medium ${currentFilter === f ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
       </div>
 
       {/* Pending Expenses */}

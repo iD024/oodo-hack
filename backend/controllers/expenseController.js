@@ -144,7 +144,25 @@ const getUserExpenses = async (req, res) => {
   try {
     console.log('getUserExpenses: User ID from token:', req.user.id);
     console.log('getUserExpenses: User info:', { id: req.user.id, name: req.user.name, email: req.user.email });
-    const expenses = await Expense.findByUserId(req.user.id);
+    // Allow managers/admins to fetch expenses for a specific user via ?userId=<id>
+    const targetUserId = req.query.userId;
+    let expenses;
+    if (targetUserId) {
+      // Only allow if requester is manager of the target user or an admin
+      if (req.user.role === 'admin') {
+        expenses = await Expense.findByUserId(targetUserId);
+      } else if (req.user.role === 'manager') {
+        // Verify target user's manager_id
+        const targetUser = await require('./../models/userModel').findById(targetUserId);
+        if (!targetUser) return res.status(404).json({ message: 'Target user not found' });
+        if (targetUser.manager_id !== req.user.id) return res.status(403).json({ message: 'Not authorized to view this user\'s expenses' });
+        expenses = await Expense.findByUserId(targetUserId);
+      } else {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+    } else {
+      expenses = await Expense.findByUserId(req.user.id);
+    }
     console.log('getUserExpenses: Found expenses:', expenses.length);
     res.json(expenses);
   } catch (error) {
@@ -164,9 +182,17 @@ const getExpenseById = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    // Ensure the expense belongs to the logged-in user
+    // Ensure the expense belongs to the logged-in user, or requester is admin, or manager of the submitter
     if (expense.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized to view this expense' });
+      if (req.user.role === 'admin') {
+        // allow
+      } else if (req.user.role === 'manager') {
+        const submitter = await require('./../models/userModel').findById(expense.user_id);
+        if (!submitter) return res.status(404).json({ message: 'Submitter not found' });
+        if (submitter.manager_id !== req.user.id) return res.status(403).json({ message: 'Not authorized to view this expense' });
+      } else {
+        return res.status(403).json({ message: 'Not authorized to view this expense' });
+      }
     }
 
     res.json(expense);
@@ -241,6 +267,18 @@ const getPendingSubordinateExpenses = async (req, res) => {
     res.json(expenses);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// New: Get subordinate expenses with optional status filter
+const getSubordinateExpenses = async (req, res) => {
+  try {
+    const status = req.query.status || null; // 'pending' | 'approved' | 'rejected' or null
+    const expenses = await Expense.findByManagerId(req.user.id, status);
+    res.json(expenses);
+  } catch (error) {
+    console.error('getSubordinateExpenses error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -326,13 +364,13 @@ const getAllExpenses = async (req, res) => {
 
 module.exports = {
   createExpense,
-  approveOrRejectExpense,
   getUserExpenses,
   getExpenseById,
   updateExpense,
   deleteExpense,
-    getPendingSubordinateExpenses,
+  getPendingSubordinateExpenses,
+  getSubordinateExpenses,
   approveOrRejectExpense,
   getAllExpenses,
-   processReceipt
+  processReceipt,
 };

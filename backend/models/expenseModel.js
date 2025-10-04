@@ -104,6 +104,36 @@ const Expense = {
   },
 
   /**
+   * Finds expenses for subordinates of a manager, optionally filtered by status.
+   * @param {string} managerId - The manager's user ID.
+   * @param {string|null} status - Optional status filter ('pending','approved','rejected').
+   */
+  async findByManagerId(managerId, status = null) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(managerId)) {
+      throw new Error(`Invalid manager UUID format: ${managerId}`);
+    }
+
+    let query = `
+      SELECT e.*, u.name as submitter_name, u.email as submitter_email
+      FROM expenses e
+      JOIN users u ON e.user_id = u.id
+      WHERE u.manager_id = $1
+    `;
+    const params = [managerId];
+
+    if (status) {
+      query += ' AND e.status = $2 ';
+      params.push(status);
+    }
+
+    query += ' ORDER BY e.submitted_at DESC';
+
+    const result = await pool.query(query, params);
+    return result.rows;
+  },
+
+  /**
    * Finds all expenses (for admin view).
    * @returns {Promise<Array>} A list of all expenses.
    */
