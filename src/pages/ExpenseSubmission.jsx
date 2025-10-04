@@ -82,7 +82,7 @@ const ExpenseSubmission = ({ user }) => {
         managerId = profileData.managerId;
       }
 
-      // Create expense claim
+      // expense claim
       const expenseData = {
         ...formData,
         amount: parseFloat(formData.amount),

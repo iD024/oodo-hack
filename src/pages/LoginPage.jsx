@@ -127,6 +127,7 @@ const LoginPage = ({ setUser, setUserRole }) => {
             </div>
           </form>
         </Card>
+      {/**Make sure to remove the demo data after backend integration */}
         
         <div className="text-center">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

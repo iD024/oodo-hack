@@ -27,8 +27,8 @@ const AdminUserManagement = ({ user }) => {
         const demoUsers = [
           {
             id: 'admin_001',
-            name: 'Sarah Johnson',
-            email: 'sarah.johnson@company.com',
+            name: 'John Smith',
+            email: 'john.smith@company.com',
             role: 'admin',
             managerId: null,
             createdAt: new Date(Date.now() - 2592000000).toISOString(),
@@ -36,8 +36,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'manager_001',
-            name: 'Mike Davis',
-            email: 'mike.davis@company.com',
+            name: 'John Smith1',
+            email: 'john.smith1@company.com',
             role: 'manager',
             managerId: 'admin_001',
             createdAt: new Date(Date.now() - 1728000000).toISOString(),
@@ -45,8 +45,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'manager_002',
-            name: 'Lisa Chen',
-            email: 'lisa.chen@company.com',
+            name: 'John Smith2',
+            email: 'john.smith2@company.com',
             role: 'manager',
             managerId: 'admin_001',
             createdAt: new Date(Date.now() - 1296000000).toISOString(),
@@ -54,8 +54,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'emp_001',
-            name: 'John Smith',
-            email: 'john.smith@company.com',
+            name: 'John Smith3',
+            email: 'john.smith3@company.com',
             role: 'employee',
             managerId: 'manager_001',
             createdAt: new Date(Date.now() - 864000000).toISOString(),
@@ -63,8 +63,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'emp_002',
-            name: 'Emily Brown',
-            email: 'emily.brown@company.com',
+            name: 'John Smith4 ',
+            email: 'john.smith4@company.com',
             role: 'employee',
             managerId: 'manager_001',
             createdAt: new Date(Date.now() - 604800000).toISOString(),
@@ -72,8 +72,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'emp_003',
-            name: 'David Wilson',
-            email: 'david.wilson@company.com',
+            name: 'John Smith5',
+            email: 'john.smith5@company.com',
             role: 'employee',
             managerId: 'manager_002',
             createdAt: new Date(Date.now() - 432000000).toISOString(),
@@ -81,8 +81,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'emp_004',
-            name: 'Anna Garcia',
-            email: 'anna.garcia@company.com',
+            name: 'John Smith6',
+            email: 'john.smith6@company.com',
             role: 'employee',
             managerId: 'manager_002',
             createdAt: new Date(Date.now() - 259200000).toISOString(),

@@ -203,6 +203,7 @@ const RegisterPage = ({ setUser, setUserRole }) => {
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
+                  {/* this is for employee to select manager */}
                   <option value="">Select a manager (optional)</option>
                   {managers.map(manager => (
                     <option key={manager.id} value={manager.id}>

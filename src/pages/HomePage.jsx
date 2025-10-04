@@ -73,14 +73,17 @@ const HomePage = ({ user, userRole, onPageChange }) => {
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-8">
         <h1 className="text-4xl font-bold mb-4">
-          Welcome to Expense Management System
+          Welcome to Expense Management System.
         </h1>
         <p className="text-xl opacity-90 mb-6">
-          Streamline your expense reporting with our comprehensive solution
+          Streamline your expense reporting with our comprehensive solution.
+        </p>
+        <p className="mb-6">
+          You are logged in as a <span className="font-semibold capitalize">{userRole}</span>
         </p>
         <div className="flex items-center space-x-4">
           <div className="bg-white bg-opacity-20 rounded-full p-3">
-            <span className="text-2xl">👤</span>
+            <span className="text-2xl">{/* User Icon */}</span> {/* You can replace this with an actual user icon */}
           </div>
           <div>
             <p className="font-semibold">{user?.displayName || 'Demo User'}</p>
@@ -123,21 +126,21 @@ const HomePage = ({ user, userRole, onPageChange }) => {
 
       {/* System Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card title="📊 Analytics">
+        <Card title="Analytics">
           <div className="space-y-2">
             <p className="text-2xl font-bold text-blue-600">Real-time</p>
             <p className="text-gray-600">Track expenses and approvals instantly</p>
           </div>
         </Card>
         
-        <Card title="🔒 Security">
+        <Card title="Security">
           <div className="space-y-2">
             <p className="text-2xl font-bold text-green-600">Secure</p>
             <p className="text-gray-600">Enterprise-grade data protection</p>
           </div>
         </Card>
         
-        <Card title="📱 Mobile">
+        <Card title="Mobile">
           <div className="space-y-2">
             <p className="text-2xl font-bold text-purple-600">Responsive</p>
             <p className="text-gray-600">Access from any device, anywhere</p>
@@ -151,7 +154,7 @@ const HomePage = ({ user, userRole, onPageChange }) => {
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="bg-blue-100 rounded-full p-2">
-                <span className="text-blue-600">📝</span>
+                <span className="text-blue-600"></span>
               </div>
               <div>
                 <p className="font-medium">Welcome to the system!</p>
@@ -164,11 +167,11 @@ const HomePage = ({ user, userRole, onPageChange }) => {
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="bg-green-100 rounded-full p-2">
-                <span className="text-green-600">✅</span>
+                <span className="text-green-600"></span>
               </div>
               <div>
                 <p className="font-medium">System initialized</p>
-                <p className="text-sm text-gray-600">All features are now available</p>
+                <p className="text-sm text-gray-600">All features are available now</p>
               </div>
             </div>
             <span className="text-sm text-gray-500">Just now</span>
