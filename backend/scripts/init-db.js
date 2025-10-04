@@ -76,19 +76,19 @@ const initDatabase = async () => {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_expense_approvals_expense_id ON expense_approvals(expense_id)');
 
     console.log('Database initialized successfully!');
-    
+
     // Create default admin user
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    
+
     const adminExists = await pool.query('SELECT id FROM users WHERE email = $1', ['admin@company.com']);
-    
+
     if (adminExists.rows.length === 0) {
       await pool.query(`
         INSERT INTO users (name, email, password_hash, role)
         VALUES ($1, $2, $3, $4)
       `, ['Admin User', 'admin@company.com', hashedPassword, 'admin']);
-      
+
       console.log('Default admin user created: admin@company.com / admin123');
     }
 
