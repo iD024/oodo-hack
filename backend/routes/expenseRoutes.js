@@ -1,4 +1,7 @@
 const express = require('express');
+const upload = require('../config/multerConfig');
+const { processReceipt } = require('../controllers/expenseController');
+
 const router = express.Router();
 const {
   createExpense,
@@ -22,6 +25,8 @@ router.get('/all', authorize('admin'), getAllExpenses);
 // Manager routes
 router.get('/subordinates/pending', authorize(['manager', 'admin']), getPendingSubordinateExpenses);
 router.patch('/:id/status', authorize(['manager', 'admin']), approveOrRejectExpense);
+
+router.post('/process-receipt', upload.single('receipt'), processReceipt);
 
 // Employee routes (already created in Phase 3)
 router.route('/')

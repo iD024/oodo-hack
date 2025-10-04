@@ -2,6 +2,62 @@ const Expense = require('../models/expenseModel');
 const User = require('../models/userModel');
 const ExpenseApproval = require('../models/expenseApprovalModel');
 const ApprovalRule = require('../models/approvalRuleModel');
+const Tesseract = require('tesseract.js');
+
+
+
+// @desc    Process a receipt image with OCR
+// @route   POST /api/expenses/process-receipt
+// @access  Private
+const processReceipt = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded.' });
+  }
+
+  try {
+    const { data: { text } } = await Tesseract.recognize(
+      req.file.path,
+      'eng', // language
+      { logger: m => console.log(m) } // Optional: log progress
+    );
+
+    // --- Basic Parsing Logic ---
+    // This is a simplified example. Real-world parsing is complex and may require more advanced NLP techniques.
+    
+    let total = null;
+    let date = null;
+
+    // Look for lines containing "total" or "amount" and extract a number
+    const totalRegex = /(?:total|amount)[\s:]*(\d+\.\d{2})/i;
+    const totalMatch = text.match(totalRegex);
+    if (totalMatch && totalMatch[1]) {
+      total = parseFloat(totalMatch[1]);
+    }
+
+    // Look for a date in MM/DD/YYYY or YYYY-MM-DD format
+    const dateRegex = /(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2})/;
+    const dateMatch = text.match(dateRegex);
+    if (dateMatch && dateMatch[1]) {
+      date = dateMatch[1];
+    }
+    
+    res.json({
+      extractedText: text,
+      parsedData: {
+        total,
+        date,
+        // You could add logic here to parse vendor name, items, etc.
+      },
+    });
+
+  } catch (error) {
+    console.error('OCR processing error:', error);
+    res.status(500).json({ message: 'Failed to process receipt image.' });
+  }
+};
+
+
+
 
 // @desc    Create a new expense
 // @route   POST /api/expenses
@@ -242,5 +298,6 @@ module.exports = {
   deleteExpense,
     getPendingSubordinateExpenses,
   approveOrRejectExpense,
-  getAllExpenses
+  getAllExpenses,
+   processReceipt
 };
