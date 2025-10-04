@@ -7,6 +7,8 @@ const ExpenseHistory = ({ user }) => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -33,6 +35,16 @@ const ExpenseHistory = ({ user }) => {
       style: 'currency',
       currency: currency
     }).format(amount);
+  };
+
+  const viewExpense = (expense) => {
+    setSelectedExpense(expense);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setSelectedExpense(null);
+    setShowModal(false);
   };
 
   if (loading) {
@@ -179,10 +191,13 @@ const ExpenseHistory = ({ user }) => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-800 text-sm">
+                        <button 
+                          onClick={() => viewExpense(expense)}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
                           View
                         </button>
-                        {expense.receipt && (
+                        {expense.receipt_url && (
                           <button className="text-green-600 hover:text-green-800 text-sm">
                             Receipt
                           </button>
@@ -196,6 +211,104 @@ const ExpenseHistory = ({ user }) => {
           </div>
         )}
       </Card>
+      
+      {/* Expense Details Modal */}
+      {showModal && selectedExpense && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Expense Details</h2>
+                <button 
+                  onClick={closeModal}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                  <p className="text-lg font-semibold text-green-600">
+                    {formatCurrency(selectedExpense.amount, selectedExpense.currency)}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <p className="bg-gray-100 px-3 py-2 rounded">{selectedExpense.category}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <div className="py-1">
+                    <StatusBadge status={selectedExpense.status} />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Submitted Date</label>
+                  <p className="text-gray-900">
+                    {new Date(selectedExpense.submitted_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                
+                {selectedExpense.approved_at && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Approved Date</label>
+                    <p className="text-gray-900">
+                      {new Date(selectedExpense.approved_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <p className="bg-gray-50 p-4 rounded-lg text-gray-900">
+                  {selectedExpense.description || 'No description provided'}
+                </p>
+              </div>
+              
+              {selectedExpense.receipt_url && (
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Receipt</label>
+                  <a 
+                    href={selectedExpense.receipt_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    View Receipt
+                  </a>
+                </div>
+              )}
+              
+              <div className="mt-8 flex justify-end">
+                <button 
+                  onClick={closeModal}
+                  className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

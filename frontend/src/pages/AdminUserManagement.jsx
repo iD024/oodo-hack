@@ -27,8 +27,10 @@ const AdminUserManagement = ({ user }) => {
           apiService.get('/users/managers')
         ]);
         
+        console.log('Users response:', usersResponse.data);
+        console.log('Managers response:', managersResponse.data);
         setUsers(usersResponse.data);
-        setManagers(managersResponse.data);
+        setManagers(managersResponse.data.managers || managersResponse.data);
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
@@ -80,7 +82,7 @@ const AdminUserManagement = ({ user }) => {
       ]);
       
       setUsers(usersResponse.data);
-      setManagers(managersResponse.data);
+      setManagers(managersResponse.data.managers || managersResponse.data);
       setShowUserModal(false);
       setEditingUser(null);
     } catch (error) {
@@ -99,7 +101,7 @@ const AdminUserManagement = ({ user }) => {
         ]);
         
         setUsers(usersResponse.data);
-        setManagers(managersResponse.data);
+        setManagers(managersResponse.data.managers || managersResponse.data);
       } catch (error) {
         console.error('Error deleting user:', error);
         alert('Failed to delete user. Please try again.');
