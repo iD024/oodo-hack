@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { getFirestore, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import apiService from '../services/apiService';
 
 const ExpenseSubmission = ({ user }) => {
   const [formData, setFormData] = useState({
@@ -17,7 +17,8 @@ const ExpenseSubmission = ({ user }) => {
   const [ocrProcessing, setOcrProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
+  const [currencies, setCurrencies] = useState(['USD']);
+  
   const categories = [
     'Travel',
     'Meals',
@@ -29,37 +30,45 @@ const ExpenseSubmission = ({ user }) => {
     'Other'
   ];
 
-  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
-
-  // Mock OCR processing
-  const processReceiptOCR = async (file) => {
-    setOcrProcessing(true);
-    
-    // Simulate OCR processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock OCR results
-    const mockResults = {
-      amount: (Math.random() * 500 + 50).toFixed(2),
-      currency: currencies[Math.floor(Math.random() * currencies.length)],
-      description: `Receipt from ${file.name.split('.')[0]} - ${categories[Math.floor(Math.random() * categories.length)]}`
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const response = await apiService.get('/currencies');
+        setCurrencies(response.data.map(c => c.code));
+      } catch (err) {
+        console.error('Error fetching currencies:', err);
+      }
     };
     
-    setFormData(prev => ({
-      ...prev,
-      amount: mockResults.amount,
-      currency: mockResults.currency,
-      description: mockResults.description
-    }));
-    
-    setOcrProcessing(false);
-  };
+    fetchCurrencies();
+  }, []);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setReceiptFile(file);
-      processReceiptOCR(file);
+      try {
+        setOcrProcessing(true);
+        const formData = new FormData();
+        formData.append('receipt', file);
+        
+        const response = await apiService.post('/expenses/ocr', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
+        setFormData(prev => ({
+          ...prev,
+          amount: response.data.amount?.toString() || prev.amount,
+          currency: response.data.currency || prev.currency,
+          description: response.data.description || prev.description
+        }));
+      } catch (err) {
+        console.error('OCR processing error:', err);
+      } finally {
+        setOcrProcessing(false);
+      }
     }
   };
 
@@ -70,32 +79,20 @@ const ExpenseSubmission = ({ user }) => {
     setSuccess('');
 
     try {
-      const db = getFirestore();
+      const expenseFormData = new FormData();
+      Object.keys(formData).forEach(key => {
+        expenseFormData.append(key, formData[key]);
+      });
       
-      // Get manager for this user
-      const userProfileRef = doc(db, 'artifacts', 'expense-management-app', 'users', user.uid, 'profile', 'data');
-      const userProfile = await getDocs(query(collection(db, 'artifacts', 'expense-management-app', 'users', user.uid, 'profile', 'data')));
-      
-      let managerId = null;
-      if (!userProfile.empty) {
-        const profileData = userProfile.docs[0].data();
-        managerId = profileData.managerId;
+      if (receiptFile) {
+        expenseFormData.append('receipt', receiptFile);
       }
 
-      // expense claim
-      const expenseData = {
-        ...formData,
-        amount: parseFloat(formData.amount),
-        status: 'Pending',
-        currentApproverId: managerId,
-        approvalHistory: [],
-        currentStepIndex: 0,
-        submittedBy: user.uid,
-        submittedAt: new Date().toISOString(),
-        receiptFileName: receiptFile?.name || null
-      };
-
-      await addDoc(collection(db, 'artifacts', 'expense-management-app', 'users', user.uid, 'claims'), expenseData);
+      await apiService.post('/expenses', expenseFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       setSuccess('Expense claim submitted successfully!');
       setFormData({

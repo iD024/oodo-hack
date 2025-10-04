@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Modal from '../components/Modal';
+import apiService from '../services/apiService';
 
 const AdminUserManagement = ({ user }) => {
   const [users, setUsers] = useState([]);
@@ -19,100 +19,24 @@ const AdminUserManagement = ({ user }) => {
   });
 
   useEffect(() => {
-    // Load demo data for admin user management
-    // Remove demo data after backend integration
-    const loadDemoData = () => {
-      setLoading(true);
-      
-      setTimeout(() => {
-        const demoUsers = [
-          {
-            id: 'admin_001',
-            name: 'John Smith',
-            email: 'john.smith@company.com',
-            role: 'admin',
-            managerId: null,
-            createdAt: new Date(Date.now() - 2592000000).toISOString(),
-            lastLogin: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            id: 'manager_001',
-            name: 'John Smith1',
-            email: 'john.smith1@company.com',
-            role: 'manager',
-            managerId: 'admin_001',
-            createdAt: new Date(Date.now() - 1728000000).toISOString(),
-            lastLogin: new Date(Date.now() - 172800000).toISOString()
-          },
-          {
-            id: 'manager_002',
-            name: 'John Smith2',
-            email: 'john.smith2@company.com',
-            role: 'manager',
-            managerId: 'admin_001',
-            createdAt: new Date(Date.now() - 1296000000).toISOString(),
-            lastLogin: new Date(Date.now() - 259200000).toISOString()
-          },
-          {
-            id: 'emp_001',
-            name: 'John Smith3',
-            email: 'john.smith3@company.com',
-            role: 'employee',
-            managerId: 'manager_001',
-            createdAt: new Date(Date.now() - 864000000).toISOString(),
-            lastLogin: new Date(Date.now() - 43200000).toISOString()
-          },
-          {
-            id: 'emp_002',
-            name: 'John Smith4 ',
-            email: 'john.smith4@company.com',
-            role: 'employee',
-            managerId: 'manager_001',
-            createdAt: new Date(Date.now() - 604800000).toISOString(),
-            lastLogin: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            id: 'emp_003',
-            name: 'John Smith5',
-            email: 'john.smith5@company.com',
-            role: 'employee',
-            managerId: 'manager_002',
-            createdAt: new Date(Date.now() - 432000000).toISOString(),
-            lastLogin: new Date(Date.now() - 172800000).toISOString()
-          },
-          {
-            id: 'emp_004',
-            name: 'John Smith6',
-            email: 'john.smith6@company.com',
-            role: 'employee',
-            managerId: 'manager_002',
-            createdAt: new Date(Date.now() - 259200000).toISOString(),
-            lastLogin: new Date(Date.now() - 345600000).toISOString()
-          },
-          {
-            id: 'emp_005',
-            name: 'John Smith7',
-            email: 'john.smith7@company.com',
-            role: 'employee',
-            managerId: 'manager_001',
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
-            lastLogin: new Date(Date.now() - 518400000).toISOString()
-          }
-        ];
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const [usersResponse, managersResponse] = await Promise.all([
+          apiService.get('/users'),
+          apiService.get('/users/managers')
+        ]);
         
-        const demoManagers = [
-          { id: 'admin_001', name: 'John Smith', role: 'admin' },
-          { id: 'manager_001', name: 'John Smith1', role: 'manager' },
-          { id: 'manager_002', name: 'John Smith2', role: 'manager' }
-        ];
-        
-        setUsers(demoUsers);
-        setManagers(demoManagers);
+        setUsers(usersResponse.data);
+        setManagers(managersResponse.data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     };
 
-    loadDemoData();
+    fetchUsers();
   }, []);
 
   const handleCreateUser = () => {
@@ -144,32 +68,19 @@ const AdminUserManagement = ({ user }) => {
     }
 
     try {
-      const db = getFirestore();
-      
       if (editingUser) {
-        // Update existing user
-        const userRef = doc(db, 'artifacts', 'expense-management-app', 'users', editingUser.id, 'profile', 'data');
-        await updateDoc(userRef, {
-          name: userForm.name,
-          email: userForm.email,
-          role: userForm.role,
-          managerId: userForm.managerId || null,
-          updatedAt: new Date().toISOString()
-        });
+        await apiService.put(`/users/${editingUser.id}`, userForm);
       } else {
-        // Create new user (this would typically be done through proper user creation)
-        // For demo purposes, we'll create a mock user
-        const newUserId = `user_${Date.now()}`;
-        const userRef = doc(db, 'artifacts', 'expense-management-app', 'users', newUserId, 'profile', 'data');
-        await setDoc(userRef, {
-          name: userForm.name,
-          email: userForm.email,
-          role: userForm.role,
-          managerId: userForm.managerId || null,
-          createdAt: new Date().toISOString()
-        });
+        await apiService.post('/users', userForm);
       }
       
+      const [usersResponse, managersResponse] = await Promise.all([
+        apiService.get('/users'),
+        apiService.get('/users/managers')
+      ]);
+      
+      setUsers(usersResponse.data);
+      setManagers(managersResponse.data);
       setShowUserModal(false);
       setEditingUser(null);
     } catch (error) {
@@ -181,9 +92,14 @@ const AdminUserManagement = ({ user }) => {
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        const db = getFirestore();
-        const userRef = doc(db, 'artifacts', 'expense-management-app', 'users', userId, 'profile', 'data');
-        await deleteDoc(userRef);
+        await apiService.delete(`/users/${userId}`);
+        const [usersResponse, managersResponse] = await Promise.all([
+          apiService.get('/users'),
+          apiService.get('/users/managers')
+        ]);
+        
+        setUsers(usersResponse.data);
+        setManagers(managersResponse.data);
       } catch (error) {
         console.error('Error deleting user:', error);
         alert('Failed to delete user. Please try again.');

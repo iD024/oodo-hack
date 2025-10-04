@@ -3,6 +3,7 @@ const User = require('../models/userModel');
 const ExpenseApproval = require('../models/expenseApprovalModel');
 const ApprovalRule = require('../models/approvalRuleModel');
 const Tesseract = require('tesseract.js');
+const { pool } = require('../config/database');
 
 
 

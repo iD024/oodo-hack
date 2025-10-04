@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, doc, getDocs, setDoc, collection } from 'firebase/firestore';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import apiService from '../services/apiService';
 
 const AdminApprovalRules = ({ user }) => {
   const [rules, setRules] = useState({
-    sequentialSteps: [
-      { role: 'manager', threshold: 500 },
-      { role: 'finance', threshold: 1000 }
-    ],
-    conditionalRules: [
-      { type: 'specific', approverId: 'CFO_UID', trigger: 'auto_approve' }
-    ]
+    sequentialSteps: [],
+    conditionalRules: []
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,13 +24,8 @@ const AdminApprovalRules = ({ user }) => {
 
   const loadRules = async () => {
     try {
-      const db = getFirestore();
-      const rulesRef = doc(db, 'artifacts', 'expense-management-app', 'public', 'data', 'rules', 'config');
-      const rulesDoc = await getDocs(collection(db, 'artifacts', 'expense-management-app', 'public', 'data', 'rules', 'config'));
-      
-      if (!rulesDoc.empty) {
-        setRules(rulesDoc.docs[0].data());
-      }
+      const response = await apiService.get('/approval-rules');
+      setRules(response.data);
     } catch (error) {
       console.error('Error loading rules:', error);
     } finally {
@@ -46,13 +36,7 @@ const AdminApprovalRules = ({ user }) => {
   const handleSaveRules = async () => {
     setSaving(true);
     try {
-      const db = getFirestore();
-      const rulesRef = doc(db, 'artifacts', 'expense-management-app', 'public', 'data', 'rules', 'config');
-      await setDoc(rulesRef, {
-        ...rules,
-        updatedAt: new Date().toISOString(),
-        updatedBy: user.uid
-      });
+      await apiService.put('/approval-rules', rules);
       alert('Approval rules saved successfully!');
     } catch (error) {
       console.error('Error saving rules:', error);

@@ -1,9 +1,7 @@
-// Remove demo data after backend integration
-
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, query, where, onSnapshot } from 'firebase/firestore';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
+import apiService from '../services/apiService';
 
 const EmployeeDashboard = ({ user }) => {
   const [stats, setStats] = useState({
@@ -16,74 +14,24 @@ const EmployeeDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading and demo data
-    const loadDemoData = () => {
-      setLoading(true);
-      
-      setTimeout(() => {
-        // Demo stats
-        setStats({
-          pending: 3,
-          approved: 12,
-          rejected: 1,
-          total: 16
-        });
-        
-        // Demo recent expenses
-        setRecentExpenses([
-          {
-            id: '1',
-            amount: 125.50,
-            currency: '$',
-            category: 'Meals',
-            date: new Date().toISOString(),
-            status: 'Pending',
-            description: 'Client lunch meeting'
-          },
-          {
-            id: '2',
-            amount: 45.00,
-            currency: '$',
-            category: 'Transportation',
-            date: new Date(Date.now() - 86400000).toISOString(),
-            status: 'Approved',
-            description: 'Taxi to client site'
-          },
-          {
-            id: '3',
-            amount: 89.99,
-            currency: '$',
-            category: 'Office Supplies',
-            date: new Date(Date.now() - 172800000).toISOString(),
-            status: 'Approved',
-            description: 'Printer paper and pens'
-          },
-          {
-            id: '4',
-            amount: 250.00,
-            currency: '$',
-            category: 'Travel',
-            date: new Date(Date.now() - 259200000).toISOString(),
-            status: 'Rejected',
-            description: 'Hotel booking (exceeded limit)'
-          },
-          {
-            id: '5',
-            amount: 75.30,
-            currency: '$',
-            category: 'Meals',
-            date: new Date(Date.now() - 345600000).toISOString(),
-            status: 'Approved',
-            description: 'Team dinner'
-          }
+    const fetchDashboardData = async () => {
+      try {
+        const [expensesResponse, statsResponse] = await Promise.all([
+          apiService.get('/expenses/user/recent'),
+          apiService.get('/expenses/user/stats')
         ]);
         
+        setRecentExpenses(expensesResponse.data);
+        setStats(statsResponse.data);
         setLoading(false);
-      }, 1000);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setLoading(false);
+      }
     };
 
-    loadDemoData();
-  }, [user]);
+    fetchDashboardData();
+  }, []);
 
   if (loading) {
     return (

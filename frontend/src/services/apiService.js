@@ -11,10 +11,23 @@ const apiService = axios.create({
 // Interceptor to add the JWT token to every request
 apiService.interceptors.request.use(
   (config) => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user && user.token) {
-      config.headers['Authorization'] = `Bearer ${user.token}`;
+    // Frontend stores token either as `token` or inside `user` object depending on login flow
+    const tokenDirect = localStorage.getItem('token');
+    let token = tokenDirect || null;
+
+    if (!token) {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user && user.token) token = user.token;
+      } catch (e) {
+        // ignore parse errors
+      }
     }
+
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     return config;
   },
   (error) => {

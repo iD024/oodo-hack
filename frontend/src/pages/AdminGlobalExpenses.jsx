@@ -1,52 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
+import apiService from '../services/apiService';
 
 const AdminGlobalExpenses = ({ user }) => {
   const [expenses, setExpenses] = useState([]);
+  const [stats, setStats] = useState({
+    totalCount: 0,
+    pendingCount: 0,
+    approvedCount: 0,
+    rejectedCount: 0,
+    totalAmount: 0,
+    approvedAmount: 0,
+    pendingAmount: 0
+  });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const db = getFirestore();
-    const expensesRef = collection(db, 'artifacts', 'expense-management-app', 'expenses');
-    const q = query(expensesRef, orderBy('submittedAt', 'desc'));
+    const fetchExpenses = async () => {
+      try {
+        setLoading(true);
+        const [expensesResponse, statsResponse] = await Promise.all([
+          apiService.get('/expenses/admin', {
+            params: {
+              status: filter !== 'all' ? filter : undefined,
+              search: searchTerm || undefined
+            }
+          }),
+          apiService.get('/expenses/admin/stats')
+        ]);
+        
+        setExpenses(expensesResponse.data);
+        setStats(statsResponse.data);
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const expensesData = [];
-      snapshot.forEach((doc) => {
-        expensesData.push({ id: doc.id, ...doc.data() });
-      });
-      setExpenses(expensesData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const filteredExpenses = expenses.filter(expense => {
-    const matchesFilter = filter === 'all' || expense.status.toLowerCase() === filter.toLowerCase();
-    const matchesSearch = searchTerm === '' || 
-      expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.submittedBy.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesFilter && matchesSearch;
-  });
+    fetchExpenses();
+  }, [filter, searchTerm]);
 
   const formatCurrency = (amount, currency) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency
     }).format(amount);
-  };
-
-  const getTotalAmount = (status) => {
-    return expenses
-      .filter(expense => status === 'all' || expense.status.toLowerCase() === status.toLowerCase())
-      .reduce((total, expense) => total + expense.amount, 0);
   };
 
   if (loading) {
@@ -68,7 +70,7 @@ const AdminGlobalExpenses = ({ user }) => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{expenses.length}</div>
+            <div className="text-3xl font-bold text-blue-600">{stats.totalCount}</div>
             <div className="text-sm text-gray-600">Total Claims</div>
           </div>
         </Card>
@@ -76,7 +78,7 @@ const AdminGlobalExpenses = ({ user }) => {
         <Card>
           <div className="text-center">
             <div className="text-3xl font-bold text-yellow-600">
-              {expenses.filter(e => e.status === 'Pending').length}
+              {stats.pendingCount}
             </div>
             <div className="text-sm text-gray-600">Pending</div>
           </div>
@@ -85,7 +87,7 @@ const AdminGlobalExpenses = ({ user }) => {
         <Card>
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600">
-              {expenses.filter(e => e.status === 'Approved').length}
+              {stats.approvedCount}
             </div>
             <div className="text-sm text-gray-600">Approved</div>
           </div>
@@ -94,7 +96,7 @@ const AdminGlobalExpenses = ({ user }) => {
         <Card>
           <div className="text-center">
             <div className="text-3xl font-bold text-red-600">
-              {expenses.filter(e => e.status === 'Rejected').length}
+              {stats.rejectedCount}
             </div>
             <div className="text-sm text-gray-600">Rejected</div>
           </div>
@@ -106,7 +108,7 @@ const AdminGlobalExpenses = ({ user }) => {
         <Card>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(getTotalAmount('approved'), 'USD')}
+              {formatCurrency(stats.approvedAmount, 'USD')}
             </div>
             <div className="text-sm text-gray-600">Total Approved</div>
           </div>
@@ -115,7 +117,7 @@ const AdminGlobalExpenses = ({ user }) => {
         <Card>
           <div className="text-center">
             <div className="text-2xl font-bold text-yellow-600">
-              {formatCurrency(getTotalAmount('pending'), 'USD')}
+              {formatCurrency(stats.pendingAmount, 'USD')}
             </div>
             <div className="text-sm text-gray-600">Pending Approval</div>
           </div>
@@ -124,7 +126,7 @@ const AdminGlobalExpenses = ({ user }) => {
         <Card>
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(getTotalAmount('all'), 'USD')}
+              {formatCurrency(stats.totalAmount, 'USD')}
             </div>
             <div className="text-sm text-gray-600">Total Submitted</div>
           </div>
@@ -143,7 +145,7 @@ const AdminGlobalExpenses = ({ user }) => {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              All ({expenses.length})
+              All ({stats.totalCount})
             </button>
             <button
               onClick={() => setFilter('pending')}
@@ -153,7 +155,7 @@ const AdminGlobalExpenses = ({ user }) => {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Pending ({expenses.filter(e => e.status === 'Pending').length})
+              Pending ({stats.pendingCount})
             </button>
             <button
               onClick={() => setFilter('approved')}
@@ -163,7 +165,7 @@ const AdminGlobalExpenses = ({ user }) => {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Approved ({expenses.filter(e => e.status === 'Approved').length})
+              Approved ({stats.approvedCount})
             </button>
             <button
               onClick={() => setFilter('rejected')}
@@ -173,7 +175,7 @@ const AdminGlobalExpenses = ({ user }) => {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Rejected ({expenses.filter(e => e.status === 'Rejected').length})
+              Rejected ({stats.rejectedCount})
             </button>
           </div>
           

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
+import apiService from '../services/apiService';
 
 const ExpenseHistory = ({ user }) => {
   const [expenses, setExpenses] = useState([]);
@@ -9,123 +9,19 @@ const ExpenseHistory = ({ user }) => {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    // Load demo data for demonstration purposes
-    const loadDemoData = () => {
-      setLoading(true);
-      
-      setTimeout(() => {
-        const demoExpenses = [
-          {
-            id: '1',
-            amount: 125.50,
-            currency: 'USD',
-            category: 'Meals',
-            description: 'Client lunch meeting at downtown restaurant',
-            date: new Date().toISOString(),
-            status: 'Pending',
-            submittedAt: new Date().toISOString(),
-            receipt: 'receipt_001.pdf'
-          },
-          {
-            id: '2',
-            amount: 45.00,
-            currency: 'USD',
-            category: 'Transportation',
-            description: 'Taxi ride to client site',
-            date: new Date(Date.now() - 86400000).toISOString(),
-            status: 'Approved',
-            submittedAt: new Date(Date.now() - 86400000).toISOString(),
-            receipt: 'receipt_002.pdf',
-            approvedBy: 'John Manager',
-            approvedAt: new Date(Date.now() - 43200000).toISOString()
-          },
-          {
-            id: '3',
-            amount: 89.99,
-            currency: 'USD',
-            category: 'Office Supplies',
-            description: 'Printer paper, pens, and notebooks',
-            date: new Date(Date.now() - 172800000).toISOString(),
-            status: 'Approved',
-            submittedAt: new Date(Date.now() - 172800000).toISOString(),
-            receipt: 'receipt_003.pdf',
-            approvedBy: 'Sarah Finance',
-            approvedAt: new Date(Date.now() - 129600000).toISOString()
-          },
-          {
-            id: '4',
-            amount: 250.00,
-            currency: 'USD',
-            category: 'Travel',
-            description: 'Hotel booking for conference (exceeded daily limit)',
-            date: new Date(Date.now() - 259200000).toISOString(),
-            status: 'Rejected',
-            submittedAt: new Date(Date.now() - 259200000).toISOString(),
-            receipt: 'receipt_004.pdf',
-            rejectedBy: 'Mike Director',
-            rejectedAt: new Date(Date.now() - 216000000).toISOString(),
-            rejectionReason: 'Exceeds daily hotel allowance of $200'
-          },
-          {
-            id: '5',
-            amount: 75.30,
-            currency: 'USD',
-            category: 'Meals',
-            description: 'Team dinner after project completion',
-            date: new Date(Date.now() - 345600000).toISOString(),
-            status: 'Approved',
-            submittedAt: new Date(Date.now() - 345600000).toISOString(),
-            receipt: 'receipt_005.pdf',
-            approvedBy: 'Lisa Team Lead',
-            approvedAt: new Date(Date.now() - 302400000).toISOString()
-          },
-          {
-            id: '6',
-            amount: 32.50,
-            currency: 'USD',
-            category: 'Transportation',
-            description: 'Uber ride to airport',
-            date: new Date(Date.now() - 432000000).toISOString(),
-            status: 'Pending',
-            submittedAt: new Date(Date.now() - 432000000).toISOString(),
-            receipt: 'receipt_006.pdf'
-          },
-          {
-            id: '7',
-            amount: 156.75,
-            currency: 'USD',
-            category: 'Meals',
-            description: 'Business dinner with potential client',
-            date: new Date(Date.now() - 518400000).toISOString(),
-            status: 'Approved',
-            submittedAt: new Date(Date.now() - 518400000).toISOString(),
-            receipt: 'receipt_007.pdf',
-            approvedBy: 'David VP',
-            approvedAt: new Date(Date.now() - 475200000).toISOString()
-          },
-          {
-            id: '8',
-            amount: 45.00,
-            currency: 'USD',
-            category: 'Office Supplies',
-            description: 'Software license renewal',
-            date: new Date(Date.now() - 604800000).toISOString(),
-            status: 'Rejected',
-            submittedAt: new Date(Date.now() - 604800000).toISOString(),
-            receipt: 'receipt_008.pdf',
-            rejectedBy: 'IT Department',
-            rejectedAt: new Date(Date.now() - 561600000).toISOString(),
-            rejectionReason: 'Software purchases require IT approval first'
-          }
-        ];
-        
-        setExpenses(demoExpenses);
+    const fetchExpenses = async () => {
+      try {
+        const response = await apiService.get('/expenses/user');
+        setExpenses(response.data);
         setLoading(false);
-      }, 1000);
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+        setLoading(false);
+      }
     };
 
-    loadDemoData();
-  }, [user]);
+    fetchExpenses();
+  }, []);
 
   const filteredExpenses = expenses.filter(expense => {
     if (filter === 'all') return true;

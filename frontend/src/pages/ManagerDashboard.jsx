@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, onSnapshot, query, where, doc, updateDoc, addDoc } from 'firebase/firestore';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
+import apiService from '../services/apiService';
 
 const ManagerDashboard = ({ user }) => {
   const [pendingExpenses, setPendingExpenses] = useState([]);
+  const [stats, setStats] = useState({
+    totalPending: 0,
+    approvedToday: 0,
+    rejectedToday: 0,
+    totalProcessed: 0
+  });
   const [loading, setLoading] = useState(true);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -14,121 +20,43 @@ const ManagerDashboard = ({ user }) => {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    // Load demo data for manager dashboard
-    const loadDemoData = () => {
-      setLoading(true);
-      
-      setTimeout(() => {
-        const demoPendingExpenses = [
-          {
-            id: '1',
-            amount: 125.50,
-            currency: 'USD',
-            category: 'Meals',
-            description: 'Client lunch meeting at downtown restaurant',
-            submittedAt: new Date().toISOString(),
-            status: 'Pending',
-            employeeName: 'John Smith',
-            employeeId: 'emp_001',
-            currentStepIndex: 0,
-            approvalHistory: []
-          },
-          {
-            id: '2',
-            amount: 89.99,
-            currency: 'USD',
-            category: 'Office Supplies',
-            description: 'Printer paper, pens, and notebooks',
-            submittedAt: new Date(Date.now() - 86400000).toISOString(),
-            status: 'Pending',
-            employeeName: 'Sarah Johnson',
-            employeeId: 'emp_002',
-            currentStepIndex: 0,
-            approvalHistory: []
-          },
-          {
-            id: '3',
-            amount: 250.00,
-            currency: 'USD',
-            category: 'Travel',
-            description: 'Hotel booking for conference',
-            submittedAt: new Date(Date.now() - 172800000).toISOString(),
-            status: 'Pending',
-            employeeName: 'Mike Davis',
-            employeeId: 'emp_003',
-            currentStepIndex: 0,
-            approvalHistory: []
-          }
-        ];
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [pendingResponse, statsResponse] = await Promise.all([
+          apiService.get('/expenses/pending'),
+          apiService.get('/manager/stats')
+        ]);
         
-        setPendingExpenses(demoPendingExpenses);
+        setPendingExpenses(pendingResponse.data);
+        setStats(statsResponse.data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     };
 
-    loadDemoData();
-  }, [user]);
+    fetchDashboardData();
+  }, []);
 
   const handleApproval = async (expenseId, action) => {
     setProcessing(true);
     
     try {
-      const db = getFirestore();
-      const expenseRef = doc(db, 'artifacts', 'expense-management-app', 'expenses', expenseId);
-      
-      // Get approval rules configuration
-      const rulesRef = doc(db, 'artifacts', 'expense-management-app', 'public', 'data', 'rules', 'config');
-      const rulesDoc = await getDocs(collection(db, 'artifacts', 'expense-management-app', 'public', 'data', 'rules', 'config'));
-      
-      let rules = null;
-      if (!rulesDoc.empty) {
-        rules = rulesDoc.docs[0].data();
-      }
+      await apiService.post(`/expenses/${expenseId}/${action}`, {
+        comment: approvalComment
+      });
 
-      if (action === 'approve') {
-        // Check if this is the final step or if conditional rules apply
-        const currentStep = rules?.sequentialSteps?.[expenseId.currentStepIndex] || null;
-        const isFinalStep = !currentStep || expenseId.currentStepIndex >= (rules?.sequentialSteps?.length || 0) - 1;
-        
-        if (isFinalStep) {
-          // Final approval
-          await updateDoc(expenseRef, {
-            status: 'Approved',
-            approvedAt: new Date().toISOString(),
-            approvedBy: user.uid
-          });
-        } else {
-          // Move to next step
-          const nextStepIndex = expenseId.currentStepIndex + 1;
-          const nextStep = rules?.sequentialSteps?.[nextStepIndex];
-          
-          if (nextStep) {
-            // Find the next approver based on role
-            const nextApproverId = await findApproverByRole(nextStep.role);
-            
-            await updateDoc(expenseRef, {
-              currentStepIndex: nextStepIndex,
-              currentApproverId: nextApproverId,
-              approvalHistory: [...(expenseId.approvalHistory || []), {
-                step: expenseId.currentStepIndex,
-                approverId: user.uid,
-                action: 'approved',
-                comment: approvalComment,
-                timestamp: new Date().toISOString()
-              }]
-            });
-          }
-        }
-      } else {
-        // Reject
-        await updateDoc(expenseRef, {
-          status: 'Rejected',
-          rejectedAt: new Date().toISOString(),
-          rejectedBy: user.uid,
-          rejectionReason: approvalComment
-        });
-      }
-
+      // Refresh the pending expenses and stats
+      const [pendingResponse, statsResponse] = await Promise.all([
+        apiService.get('/expenses/pending'),
+        apiService.get('/manager/stats')
+      ]);
+      
+      setPendingExpenses(pendingResponse.data);
+      setStats(statsResponse.data);
+      
       setShowApprovalModal(false);
       setApprovalComment('');
       setSelectedExpense(null);
@@ -138,12 +66,6 @@ const ManagerDashboard = ({ user }) => {
     } finally {
       setProcessing(false);
     }
-  };
-
-  const findApproverByRole = async (role) => {
-    // Mock function - in real implementation, this would query users by role
-    // For now, return a mock UID
-    return `approver_${role}_uid`;
   };
 
   const formatCurrency = (amount, currency) => {
@@ -172,28 +94,28 @@ const ManagerDashboard = ({ user }) => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">{pendingExpenses.length}</div>
+            <div className="text-3xl font-bold text-yellow-600">{stats.totalPending}</div>
             <div className="text-sm text-gray-600">Pending Approvals</div>
           </div>
         </Card>
         
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">12</div>
+            <div className="text-3xl font-bold text-green-600">{stats.approvedToday}</div>
             <div className="text-sm text-gray-600">Approved Today</div>
           </div>
         </Card>
         
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-red-600">2</div>
+            <div className="text-3xl font-bold text-red-600">{stats.rejectedToday}</div>
             <div className="text-sm text-gray-600">Rejected Today</div>
           </div>
         </Card>
         
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">156</div>
+            <div className="text-3xl font-bold text-blue-600">{stats.totalProcessed}</div>
             <div className="text-sm text-gray-600">Total Processed</div>
           </div>
         </Card>
