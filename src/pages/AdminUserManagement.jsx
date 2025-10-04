@@ -20,6 +20,7 @@ const AdminUserManagement = ({ user }) => {
 
   useEffect(() => {
     // Load demo data for admin user management
+    // Remove demo data after backend integration
     const loadDemoData = () => {
       setLoading(true);
       
@@ -90,8 +91,8 @@ const AdminUserManagement = ({ user }) => {
           },
           {
             id: 'emp_005',
-            name: 'Tom Anderson',
-            email: 'tom.anderson@company.com',
+            name: 'John Smith7',
+            email: 'john.smith7@company.com',
             role: 'employee',
             managerId: 'manager_001',
             createdAt: new Date(Date.now() - 172800000).toISOString(),
@@ -100,9 +101,9 @@ const AdminUserManagement = ({ user }) => {
         ];
         
         const demoManagers = [
-          { id: 'admin_001', name: 'Sarah Johnson', role: 'admin' },
-          { id: 'manager_001', name: 'Mike Davis', role: 'manager' },
-          { id: 'manager_002', name: 'Lisa Chen', role: 'manager' }
+          { id: 'admin_001', name: 'John Smith', role: 'admin' },
+          { id: 'manager_001', name: 'John Smith1', role: 'manager' },
+          { id: 'manager_002', name: 'John Smith2', role: 'manager' }
         ];
         
         setUsers(demoUsers);

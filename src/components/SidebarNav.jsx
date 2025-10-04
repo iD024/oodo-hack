@@ -3,30 +3,30 @@ import React from 'react';
 const SidebarNav = ({ userRole, currentPage, onPageChange, onLogout }) => {
   const getNavigationItems = () => {
     const baseItems = [
-      { id: 'home', label: 'Home', icon: '🏠' },
-      { id: 'about', label: 'About', icon: 'ℹ️' }
+      { id: 'home', label: 'Home'},
+      { id: 'about', label: 'About'}
     ];
 
     switch (userRole) {
       case 'employee':
         return [
           ...baseItems,
-          { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-          { id: 'submit-expense', label: 'Submit Expense', icon: '➕' },
-          { id: 'expense-history', label: 'My Expenses', icon: '📋' }
+          { id: 'dashboard', label: 'Dashboard'},
+          { id: 'submit-expense', label: 'Submit Expense'},
+          { id: 'expense-history', label: 'My Expenses'}
         ];
       case 'manager':
         return [
           ...baseItems,
-          { id: 'dashboard', label: 'Approval Queue', icon: '✅' },
-          { id: 'expense-history', label: 'All Expenses', icon: '📋' }
+          { id: 'dashboard', label: 'Approval Queue'},
+          { id: 'expense-history', label: 'All Expenses'}
         ];
       case 'admin':
         return [
           ...baseItems,
-          { id: 'dashboard', label: 'User Management', icon: '👥' },
-          { id: 'approval-rules', label: 'Approval Rules', icon: '⚙️' },
-          { id: 'global-expenses', label: 'All Expenses', icon: '📊' }
+          { id: 'dashboard', label: 'User Management'},
+          { id: 'approval-rules', label: 'Approval Rules'},
+          { id: 'global-expenses', label: 'All Expenses'}
         ];
       default:
         return baseItems;
@@ -64,7 +64,6 @@ const SidebarNav = ({ userRole, currentPage, onPageChange, onLogout }) => {
             onClick={onLogout}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors duration-200 text-red-600 hover:bg-red-50"
           >
-            <span className="text-lg">🚪</span>
             <span className="font-medium">Logout</span>
           </button>
         </div>

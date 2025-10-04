@@ -1,3 +1,5 @@
+// Remove demo data after backend integration
+
 import React, { useState, useEffect } from 'react';
 import { getFirestore, collection, query, where, onSnapshot } from 'firebase/firestore';
 import Card from '../components/Card';
