@@ -1,5 +1,3 @@
-// Make sure to remove Role Switcher before backend integration
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -9,7 +7,6 @@ const API_BASE_URL = 'http://localhost:5000/api';
 // Page components
 import SidebarNav from './components/SidebarNav';
 import LoadingSpinner from './components/LoadingSpinner';
-import RoleSwitcher from './components/RoleSwitcher';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
@@ -38,11 +35,6 @@ const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('home');
   const [error, setError] = useState(null);
 
-  // Function to switch roles for demo purposes
-  const handleRoleChange = (newRole) => {
-    setUserRole(newRole);
-    setCurrentPage('home');
-  };
 
   useEffect(() => {
     // User log in
@@ -163,10 +155,6 @@ const AppContent = () => {
           onLogout={handleLogout}
         />
         <main className="flex-1 p-6">
-          <RoleSwitcher 
-            currentRole={userRole} 
-            onRoleChange={handleRoleChange}
-          />
           {renderCurrentPage()}
         </main>
       </div>

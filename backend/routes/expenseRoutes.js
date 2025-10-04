@@ -28,9 +28,15 @@ router.patch('/:id/status', authorize(['manager', 'admin']), approveOrRejectExpe
 
 router.post('/process-receipt', upload.single('receipt'), processReceipt);
 
+// Temporary debug route (protected) to inspect multipart parsing
+router.post('/debug', upload.single('receipt'), (req, res) => {
+  res.json({ body: req.body, file: req.file || null });
+});
+
 // Employee routes (already created in Phase 3)
+// Ensure multipart/form-data is parsed so req.body contains the form fields
 router.route('/')
-  .post(createExpense)
+  .post(upload.single('receipt'), createExpense)
   .get(getUserExpenses);
 
 router.route('/:id')

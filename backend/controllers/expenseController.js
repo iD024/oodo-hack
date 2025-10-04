@@ -3,7 +3,7 @@ const User = require('../models/userModel');
 const ExpenseApproval = require('../models/expenseApprovalModel');
 const ApprovalRule = require('../models/approvalRuleModel');
 const Tesseract = require('tesseract.js');
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 
 
 
@@ -67,6 +67,20 @@ const createExpense = async (req, res) => {
   const client = await pool.connect();
   try {
     const { amount, currency, category, description } = req.body;
+
+    // Validate required fields
+    if (!amount || !currency || !category) {
+      console.warn('createExpense: missing fields', { body: req.body, file: req.file && req.file.filename });
+      return res.status(400).json({
+        message: 'Missing required fields',
+        missing: {
+          amount: !amount,
+          currency: !currency,
+          category: !category
+        }
+      });
+    }
+
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -75,13 +89,21 @@ const createExpense = async (req, res) => {
 
     await client.query('BEGIN');
 
+    // Parse amount to ensure it's a number
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount)) {
+      console.warn('createExpense: invalid amount', { amount });
+      return res.status(400).json({ message: 'Invalid amount format', received: amount });
+    }
+
     const newExpense = await Expense.create({
       user_id: user.id,
-      amount,
-      currency,
+      amount: parsedAmount,
+      currency: currency.toUpperCase(),
       category,
       description,
       status: 'pending',
+      receipt_url: req.file ? req.file.path : null
     }, client); // Pass client for transaction
 
     if (!user.manager_id) {
@@ -99,8 +121,12 @@ const createExpense = async (req, res) => {
     await client.query('COMMIT');
     res.status(201).json(newExpense);
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error(error);
+    try { await client.query('ROLLBACK'); } catch (e) { console.error('Rollback error', e); }
+    console.error('createExpense error', error);
+    // If the error includes a detail from PG (e.g., not-null violations), return 400
+    if (error.code === '23502') {
+      return res.status(400).json({ message: 'Database constraint error', detail: error.detail });
+    }
     res.status(500).json({ message: 'Server error while creating expense' });
   } finally {
     client.release();

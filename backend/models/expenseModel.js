@@ -6,12 +6,12 @@ const Expense = {
    * @param {object} expenseData - The expense data.
    * @returns {Promise<object>} The newly created expense.
    */
-  async create({ user_id, amount, currency, category, description, receipt_url = null }) {
-    const result = await pool.query(
-      `INSERT INTO expenses (user_id, amount, currency, category, description, receipt_url)
-       VALUES ($1, $2, $3, $4, $5, $6)
+  async create({ user_id, amount, currency, category, description, receipt_url = null, status = 'pending' }, client = pool) {
+    const result = await client.query(
+      `INSERT INTO expenses (user_id, amount, currency, category, description, receipt_url, status, submitted_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        RETURNING *`,
-      [user_id, amount, currency, category, description, receipt_url]
+      [user_id, amount, currency, category, description, receipt_url, status]
     );
     return result.rows[0];
   },

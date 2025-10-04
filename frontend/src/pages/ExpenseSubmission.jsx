@@ -15,6 +15,7 @@ const ExpenseSubmission = ({ user }) => {
   const [receiptFile, setReceiptFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ocrProcessing, setOcrProcessing] = useState(false);
+  const [ocrEnabled, setOcrEnabled] = useState(false); // OCR toggle for testing
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [currencies, setCurrencies] = useState(['USD']);
@@ -47,34 +48,37 @@ const ExpenseSubmission = ({ user }) => {
     const file = e.target.files[0];
     if (file) {
       setReceiptFile(file);
-      try {
-        setOcrProcessing(true);
-        const formData = new FormData();
-        formData.append('receipt', file);
-        
-        const response = await apiService.post('/expenses/ocr', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        
-        setFormData(prev => ({
-          ...prev,
-          amount: response.data.amount?.toString() || prev.amount,
-          currency: response.data.currency || prev.currency,
-          description: response.data.description || prev.description
-        }));
-      } catch (err) {
-        console.error('OCR processing error:', err);
-      } finally {
-        setOcrProcessing(false);
+      
+      // Only process OCR if enabled
+      if (ocrEnabled) {
+        try {
+          setOcrProcessing(true);
+          const formData = new FormData();
+          formData.append('receipt', file);
+          
+          const response = await apiService.post('/expenses/process-receipt', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          
+          // Update form with OCR extracted data
+          if (response.data.parsedData) {
+            setFormData(prev => ({
+              ...prev,
+              amount: response.data.parsedData.total?.toString() || prev.amount,
+              description: response.data.parsedData.description || prev.description
+            }));
+          }
+        } catch (err) {
+          console.error('OCR processing error:', err);
+          setError('Failed to process receipt with OCR. You can still submit manually.');
+        } finally {
+          setOcrProcessing(false);
+        }
       }
     }
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
     setError('');
     setSuccess('');
 
@@ -88,11 +92,7 @@ const ExpenseSubmission = ({ user }) => {
         expenseFormData.append('receipt', receiptFile);
       }
 
-      await apiService.post('/expenses', expenseFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await apiService.post('/expenses', expenseFormData);
 
       setSuccess('Expense claim submitted successfully!');
       setFormData({
@@ -120,6 +120,30 @@ const ExpenseSubmission = ({ user }) => {
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* OCR Toggle */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-blue-800">OCR Processing (Testing Feature)</h3>
+                <p className="text-xs text-blue-600 mt-1">
+                  Enable to automatically extract data from receipt images using OCR
+                </p>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="ocrEnabled"
+                  checked={ocrEnabled}
+                  onChange={(e) => setOcrEnabled(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="ocrEnabled" className="ml-2 text-sm text-blue-700">
+                  {ocrEnabled ? 'Enabled' : 'Disabled'}
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Receipt Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -132,10 +156,16 @@ const ExpenseSubmission = ({ user }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
             {ocrProcessing && (
-              <p className="mt-2 text-sm text-blue-600">Processing receipt with OCR...</p>
+              <p className="mt-2 text-sm text-blue-600">
+                🔄 Processing receipt with OCR...
+              </p>
             )}
             {receiptFile && !ocrProcessing && (
-              <p className="mt-2 text-sm text-green-600">Receipt uploaded: {receiptFile.name}</p>
+              <p className="mt-2 text-sm text-green-600">
+                ✅ Receipt uploaded: {receiptFile.name}
+                {ocrEnabled && " (OCR processed)"}
+                {!ocrEnabled && " (OCR disabled - manual entry required)"}
+              </p>
             )}
           </div>
 
@@ -224,6 +254,8 @@ const ExpenseSubmission = ({ user }) => {
                   date: new Date().toISOString().split('T')[0]
                 });
                 setReceiptFile(null);
+                setError('');
+                setSuccess('');
               }}
             >
               Reset
