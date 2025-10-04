@@ -16,8 +16,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/users', require('./routes/users')); // This line will now work
 app.use('/api/expenses', require('./routes/expenses'));
 
 // Health check endpoint

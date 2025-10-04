@@ -2,14 +2,14 @@
 
 const express = require('express');
 const router = express.Router();
-const Expense = require('../models/expenseModel'); // <-- IMPORT THE MODEL
-const { protect } = require('../middleware/auth');
+const Expense = require('../models/expenseModel');
+const { protect } = require('../middleware/authMiddleware'); // Corrected this line
 
 // Route to create a new expense
 router.post('/', protect, async (req, res) => {
   try {
     const { amount, currency, category, description } = req.body;
-    const newExpense = await Expense.create({ // <-- USE THE MODEL FUNCTION
+    const newExpense = await Expense.create({
       user_id: req.user.id,
       amount,
       currency,
@@ -23,4 +23,6 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// ... other routes
+// ... other expense-related routes can go here
+
+module.exports = router;
