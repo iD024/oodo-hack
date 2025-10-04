@@ -19,6 +19,28 @@ const initDatabase = async () => {
       )
     `);
 
+    const createApprovalRulesTable = `
+  CREATE TABLE IF NOT EXISTS approval_rules (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    condition TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const createExpenseApprovalsTable = `
+  CREATE TABLE IF NOT EXISTS expense_approvals (
+    id SERIAL PRIMARY KEY,
+    expense_id INTEGER NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+    approver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    comments TEXT,
+    sequence INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
     // Create expenses table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS expenses (
@@ -74,6 +96,8 @@ const initDatabase = async () => {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_expense_approvals_expense_id ON expense_approvals(expense_id)');
+    await pool.query(createApprovalRulesTable);
+    await pool.query(createExpenseApprovalsTable);
 
     console.log('Database initialized successfully!');
 
