@@ -14,36 +14,58 @@ const ExpenseSubmission = ({ user }) => {
   });
   const [receiptFile, setReceiptFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [ocrProcessing, setOcrProcessing] = useState(false);
-  const [ocrEnabled, setOcrEnabled] = useState(false); // OCR toggle for testing
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [currencies, setCurrencies] = useState(['USD']);
+  const [ocrEnabled, setOcrEnabled] = useState(false);
+  const [ocrProcessing, setOcrProcessing] = useState(false);
   
+  // Static data - in a real app, these would come from an API
+  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
   const categories = [
     'Travel',
-    'Meals',
+    'Meals & Entertainment',
     'Office Supplies',
-    'Transportation',
-    'Accommodation',
-    'Entertainment',
-    'Training',
+    'Software & Tools',
+    'Training & Education',
+    'Marketing',
     'Other'
   ];
+  // Form submission handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-  useEffect(() => {
-    const fetchCurrencies = async () => {
-      try {
-        const response = await apiService.get('/currencies');
-        setCurrencies(response.data.map(c => c.code));
-      } catch (err) {
-        console.error('Error fetching currencies:', err);
+    try {
+      const expenseFormData = new FormData();
+      Object.keys(formData).forEach(key => {
+        expenseFormData.append(key, formData[key]);
+      });
+      
+      if (receiptFile) {
+        expenseFormData.append('receipt', receiptFile);
       }
-    };
-    
-    fetchCurrencies();
-  }, []);
 
+      // Do not set Content-Type header; let the browser/axios set the multipart boundary
+      await apiService.post('/expenses', expenseFormData);
+
+      setSuccess('Expense claim submitted successfully!');
+      setFormData({
+        amount: '',
+        currency: 'USD',
+        category: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+      setReceiptFile(null);
+    } catch (err) {
+      setError('Failed to submit expense claim. Please try again.');
+      console.error('Submission error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -77,37 +99,6 @@ const ExpenseSubmission = ({ user }) => {
           setOcrProcessing(false);
         }
       }
-    }
-  };
-    setError('');
-    setSuccess('');
-
-    try {
-      const expenseFormData = new FormData();
-      Object.keys(formData).forEach(key => {
-        expenseFormData.append(key, formData[key]);
-      });
-      
-      if (receiptFile) {
-        expenseFormData.append('receipt', receiptFile);
-      }
-
-      await apiService.post('/expenses', expenseFormData);
-
-      setSuccess('Expense claim submitted successfully!');
-      setFormData({
-        amount: '',
-        currency: 'USD',
-        category: '',
-        description: '',
-        date: new Date().toISOString().split('T')[0]
-      });
-      setReceiptFile(null);
-    } catch (err) {
-      setError('Failed to submit expense claim. Please try again.');
-      console.error('Submission error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 

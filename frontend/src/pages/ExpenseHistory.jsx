@@ -11,7 +11,7 @@ const ExpenseHistory = ({ user }) => {
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
-        const response = await apiService.get('/expenses/user');
+        const response = await apiService.get('/expenses');
         setExpenses(response.data);
         setLoading(false);
       } catch (error) {

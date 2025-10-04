@@ -81,7 +81,9 @@ const createExpense = async (req, res) => {
       });
     }
 
+    console.log('Creating expense for user ID:', req.user.id);
     const user = await User.findById(req.user.id);
+    console.log('Found user:', user ? { id: user.id, name: user.name, role: user.role, manager_id: user.manager_id } : 'null');
 
     if (!user) {
         return res.status(404).json({ message: 'User not found' });
@@ -107,7 +109,8 @@ const createExpense = async (req, res) => {
     }, client); // Pass client for transaction
 
     if (!user.manager_id) {
-        await Expense.updateStatus(newExpense.id, 'approved', client);
+        // No manager, auto-approve with the user as approver
+        await Expense.updateStatus(newExpense.id, 'approved', user.id, client);
         await client.query('COMMIT');
         return res.status(201).json({ ...newExpense, status: 'approved' });
     }
@@ -138,10 +141,13 @@ const createExpense = async (req, res) => {
 // @access  Private
 const getUserExpenses = async (req, res) => {
   try {
+    console.log('getUserExpenses: User ID from token:', req.user.id);
+    console.log('getUserExpenses: User info:', { id: req.user.id, name: req.user.name, email: req.user.email });
     const expenses = await Expense.findByUserId(req.user.id);
+    console.log('getUserExpenses: Found expenses:', expenses.length);
     res.json(expenses);
   } catch (error) {
-    console.error(error);
+    console.error('getUserExpenses error:', error);
     res.status(500).json({ message: 'Server error while fetching expenses' });
   }
 };

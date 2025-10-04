@@ -35,6 +35,25 @@ const User = {
     const result = await pool.query('SELECT id, name, email, role, manager_id FROM users WHERE id = $1', [id]);
     return result.rows[0];
   },
+
+  /**
+   * Finds all users in the database.
+   * @returns {Promise<Array>} Array of all users.
+   */
+  async findAll() {
+    const result = await pool.query('SELECT id, name, email, role, manager_id, created_at FROM users ORDER BY created_at DESC');
+    return result.rows;
+  },
+
+  /**
+   * Finds users by their role.
+   * @param {string} role - The user role to search for.
+   * @returns {Promise<Array>} Array of users with the specified role.
+   */
+  async findByRole(role) {
+    const result = await pool.query('SELECT id, name, email, role, manager_id, created_at FROM users WHERE role = $1 ORDER BY name', [role]);
+    return result.rows;
+  },
 };
 
 module.exports = User;

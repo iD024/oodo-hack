@@ -22,4 +22,15 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// Get all managers - used for dropdown in registration
+router.get('/managers', protect, async (req, res) => {
+  try {
+    const managers = await User.findByRole('manager');
+    res.json({ managers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while fetching managers' });
+  }
+});
+
 module.exports = router;

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
+// Debug utilities (available in browser console)
+import './utils/debugAuth';
+import './utils/clearAuth';
+
 // API Configuration
 const API_BASE_URL = 'http://localhost:5000/api';
 
