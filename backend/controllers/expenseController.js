@@ -7,6 +7,7 @@ const ApprovalRule = require('../models/approvalRuleModel');
 // @route   POST /api/expenses
 // @access  Private
 const createExpense = async (req, res) => {
+  const client = await pool.connect();
   try {
     const { amount, currency, category, description } = req.body;
     const user = await User.findById(req.user.id);
@@ -15,34 +16,37 @@ const createExpense = async (req, res) => {
         return res.status(404).json({ message: 'User not found' });
     }
 
-    // 1. Create the expense
+    await client.query('BEGIN');
+
     const newExpense = await Expense.create({
       user_id: user.id,
       amount,
       currency,
       category,
       description,
-      status: 'pending', // Initial status
-    });
-    
-    // 2. Start the approval workflow
+      status: 'pending',
+    }, client); // Pass client for transaction
+
     if (!user.manager_id) {
-        // If user has no manager, maybe auto-approve or send to a default pool
-        await Expense.update(newExpense.id, { status: 'approved' });
+        await Expense.updateStatus(newExpense.id, 'approved', client);
+        await client.query('COMMIT');
         return res.status(201).json({ ...newExpense, status: 'approved' });
     }
 
-    // 3. Create the first approval step for the manager
     await ExpenseApproval.create({
         expense_id: newExpense.id,
         approver_id: user.manager_id,
         sequence: 1,
-    });
+    }, client); // Pass client for transaction
 
+    await client.query('COMMIT');
     res.status(201).json(newExpense);
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error(error);
     res.status(500).json({ message: 'Server error while creating expense' });
+  } finally {
+    client.release();
   }
 };
 
@@ -156,54 +160,60 @@ const getPendingSubordinateExpenses = async (req, res) => {
 // @access  Private/Manager
 // REPLACE your existing approveOrRejectExpense function with this new one
 const approveOrRejectExpense = async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { status, comments } = req.body; // 'approved' or 'rejected'
+    const { status, comments } = req.body;
     const expenseId = req.params.id;
     
-    // 1. Find the current pending approval for this expense
+    await client.query('BEGIN');
+
     const currentApproval = await ExpenseApproval.getCurrentApprover(expenseId);
 
     if (!currentApproval || currentApproval.approver_id !== req.user.id) {
+      await client.query('ROLLBACK');
       return res.status(403).json({ message: 'Not authorized or no pending approval found' });
     }
 
-    // 2. Update the current approval step
-    await ExpenseApproval.updateStatus(currentApproval.id, { status, comments });
+    await ExpenseApproval.updateStatus(currentApproval.id, { status, comments }, client);
 
-    // 3. If rejected, stop the workflow and update the main expense
     if (status === 'rejected') {
-      const rejectedExpense = await Expense.updateStatus(expenseId, 'rejected');
+      const rejectedExpense = await Expense.updateStatus(expenseId, 'rejected', client);
+      await client.query('COMMIT');
       return res.json(rejectedExpense);
     }
     
-    // 4. If approved, check for the next approver
     const expense = await Expense.findById(expenseId);
     const matchingRules = await ApprovalRule.getMatchingRules(expense);
     
-    // For simplicity, we assume rules imply a second-level approver (e.g., admin or finance)
-    // A more complex system would have sequences/steps defined in the rules themselves.
     const requiresNextApproval = matchingRules.length > 0;
     
     if (requiresNextApproval) {
-        // Find a user for the next level (e.g., the first admin user)
-        const nextApprover = await User.findByRole('admin'); // Simplified logic
+        // Use the role from the first matching rule to find the next approver
+        const nextRole = matchingRules[0].next_approver_role;
+        const nextApprover = await User.findByRole(nextRole); 
+        
         if (nextApprover) {
             await ExpenseApproval.create({
                 expense_id: expenseId,
                 approver_id: nextApprover.id,
                 sequence: currentApproval.sequence + 1,
-            });
-            return res.json({ message: 'Expense approved and moved to next level.' });
+            }, client);
+
+            await client.query('COMMIT');
+            return res.json({ message: `Expense approved and forwarded to ${nextRole}.` });
         }
     }
     
-    // 5. If no more approvals are needed, finalize the expense
-    const finalExpense = await Expense.updateStatus(expenseId, 'approved');
+    const finalExpense = await Expense.updateStatus(expenseId, 'approved', client);
+    await client.query('COMMIT');
     res.json(finalExpense);
 
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error(error);
     res.status(500).json({ message: 'Server error during approval process' });
+  } finally {
+    client.release();
   }
 };
 
@@ -225,7 +235,6 @@ const getAllExpenses = async (req, res) => {
 
 module.exports = {
   createExpense,
-    createExpense,
   approveOrRejectExpense,
   getUserExpenses,
   getExpenseById,

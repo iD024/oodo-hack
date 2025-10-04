@@ -24,6 +24,7 @@ const initDatabase = async () => {
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     condition TEXT NOT NULL,
+    next_approver_role VARCHAR(50) NOT NULL DEFAULT 'admin',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 `;

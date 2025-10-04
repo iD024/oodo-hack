@@ -9,6 +9,7 @@ const generateToken = (id) => {
 };
 
 const register = async (req, res) => {
+  // managerId is now optional
   const { name, email, password, role, managerId } = req.body;
 
   try {
@@ -23,7 +24,8 @@ const register = async (req, res) => {
       email,
       password,
       role,
-      manager_id: managerId,
+      // Use null if managerId is not provided
+      manager_id: managerId || null,
     });
 
     if (user) {

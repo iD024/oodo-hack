@@ -30,16 +30,35 @@ const ApprovalRule = {
   async delete(id) {
     await pool.query('DELETE FROM approval_rules WHERE id = $1', [id]);
   },
-  
-  // A function to get rules that match a given expense
+
+  // SECURE IMPLEMENTATION of getMatchingRules
   async getMatchingRules(expense) {
     const allRules = await this.findAll();
     const matchingRules = allRules.filter(rule => {
       try {
-        // A simple way to evaluate the condition against the expense object
-        // NOTE: In a real-world app, use a safer evaluation library than eval()
-        const conditionFunc = new Function('amount', 'category', `return ${rule.condition}`);
-        return conditionFunc(expense.amount, expense.category);
+        // Safe, manual parsing of the condition string
+        const parts = rule.condition.match(/(amount|category)\s*([<>=!]+)\s*'?([^']+)'?/);
+        if (!parts || parts.length < 4) {
+          console.error(`Invalid rule condition format: "${rule.condition}"`);
+          return false;
+        }
+        
+        const [, field, operator, value] = parts;
+
+        const expenseValue = expense[field];
+        const ruleValue = field === 'amount' ? parseFloat(value) : value;
+
+        switch (operator) {
+          case '>': return expenseValue > ruleValue;
+          case '>=': return expenseValue >= ruleValue;
+          case '<': return expenseValue < ruleValue;
+          case '<=': return expenseValue <= ruleValue;
+          case '==': return expenseValue == ruleValue;
+          case '!=': return expenseValue != ruleValue;
+          default:
+            console.error(`Unsupported operator in rule: "${operator}"`);
+            return false;
+        }
       } catch (e) {
         console.error(`Error evaluating rule "${rule.name}":`, e);
         return false;
